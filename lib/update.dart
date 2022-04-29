@@ -4,8 +4,13 @@ import 'package:ddns_client/ddns_updater.dart';
 import 'package:ddns_client/public_address.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
+import 'package:logger/logger.dart';
 
 import 'dns.dart';
+
+final logger = Logger();
 
 class Update extends StatefulWidget {
   const Update({Key? key}) : super(key: key);
@@ -19,11 +24,18 @@ class _UpdateState extends State<Update> {
   bool _buttonsDisabled = false;
   final _storage = const FlutterSecureStorage();
 
-  final TextEditingController _ipTextController =
-      TextEditingController(text: "Unknown");
-  final TextEditingController _lastResultController =
-      TextEditingController(text: "None");
+  final _ipTextController = TextEditingController(text: "Unknown");
+  final _lastResultController = TextEditingController(text: "None");
+  final _lastUpdatedController = TextEditingController(text: "Never");
   final PublicAddressMonitor monitor = PublicAddressMonitor();
+
+  DateFormat? _dateFormat;
+
+  @override
+  void initState() {
+    super.initState();
+    initializeDateFormatting();
+  }
 
   set buttonsDisabled(bool disabled) {
     setState(() {
@@ -43,47 +55,22 @@ class _UpdateState extends State<Update> {
     });
   }
 
+  set _lastUpdated(DateTime date) {
+    if (_dateFormat == null) {
+      final languageCode = Localizations.localeOf(context).languageCode;
+      _dateFormat = DateFormat('dd.MM.yyyy HH:mm:ss', languageCode);
+    }
+
+    setState(() {
+      _lastUpdatedController.text = _dateFormat!.format(date);
+    });
+  }
+
   String updateResultToString(UpdateResult res) {
-    final buf = StringBuffer();
     if (res.contents != null) {
-      buf.write("Content: ");
-      buf.write(res.contents);
-    }
-
-    if (res.statusCode != null) {
-      if (buf.isNotEmpty) buf.write("\n");
-      buf.write("Status code: ");
-      buf.write(res.statusCode);
-    }
-
-    if (res.success != null) {
-      if (buf.isNotEmpty) buf.write("\n");
-      buf.write("Success: ");
-      buf.write(res.success);
-    }
-
-    if (res.reasonPhrase != null) {
-      if (buf.isNotEmpty) buf.write("\n");
-      buf.write("Reason: ");
-      buf.write(res.reasonPhrase);
-    }
-
-    if (res.addressText != null) {
-      if (buf.isNotEmpty) buf.write("\n");
-      buf.write("Address: ");
-      buf.write(res.addressText);
-    }
-
-    if (buf.isNotEmpty) {
-      buf.write("\n");
-      buf.write("Timestamp: ");
-      buf.write(res.timestamp.toLocal().toString());
-    }
-
-    if (buf.isEmpty) {
-      return "No result";
+      return res.contents!;
     } else {
-      return buf.toString();
+      return "No content";
     }
   }
 
@@ -97,7 +84,7 @@ class _UpdateState extends State<Update> {
     Iterable<String>? domains;
     if (domainText != null) {
       domains = domainText
-          .split(RegExp(',|\n'))
+          .split(RegExp(',|\n', multiLine: true))
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty);
     }
@@ -110,13 +97,25 @@ class _UpdateState extends State<Update> {
         domains.isNotEmpty &&
         dns != null &&
         dns.isNotEmpty) {
-      for (String host in domains) {
+      logger.d('Updating ${domains.length} domain(s)');
+      final results = List.generate(domains.length, (_) => "", growable: false);
+
+      for (int i = 0; i < domains.length; i++) {
         final updater = GenericDyndns2Updater(
-            username: user, password: pass, hostname: host, dnsHost: dns);
+            username: user,
+            password: pass,
+            hostname: domains.elementAt(i),
+            dnsHost: dns);
         final res = await updater.update(address);
-        _lastResult = updateResultToString(res);
+        _lastUpdated = res.timestamp;
+        results[i] = domains.elementAt(i) + ": " + updateResultToString(res);
+        logger.d(res.toJson());
       }
+
+      _lastResult = results.join("\n");
+      logger.d("Successfully updated the domains");
     } else {
+      logger.w("Any configuration entry was empty");
       _lastResult = "Invalid configuration";
     }
   }
@@ -128,6 +127,7 @@ class _UpdateState extends State<Update> {
 
     _lastResult = "Updating...";
     _ip = "Updating...";
+    logger.d("Updating the address");
 
     try {
       if (force || await monitor.checkAddress()) {
@@ -136,18 +136,22 @@ class _UpdateState extends State<Update> {
         if (address != null) {
           try {
             await updateIp(address);
-          } catch (_) {
+          } catch (e) {
+            logger.e("Could not update the ip", e);
             _lastResult = "Error";
           }
         } else {
+          logger.w("Unable to obtain IP Address: The address was null");
           _lastResult = "Error";
           _ip = "Unable to obtain IP Address";
         }
       } else {
+        logger.d("The address is already up-to-date");
         _lastResult = "No update";
         _ip = lastIp;
       }
-    } catch (_) {
+    } catch (e) {
+      logger.e("Could not check the address", e);
       _ip = "Error";
       _lastResult = "Error";
     }
@@ -157,39 +161,67 @@ class _UpdateState extends State<Update> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Column(
-      children: [
-        TextField(
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          TextField(
+              readOnly: true,
+              controller: _ipTextController,
+              decoration: const InputDecoration(
+                  border: OutlineInputBorder(), labelText: "Your IP")),
+          const SizedBox(height: 10),
+          TextField(
             readOnly: true,
-            controller: _ipTextController,
+            controller: _lastResultController,
+            maxLines: null,
             decoration: const InputDecoration(
-                border: OutlineInputBorder(), labelText: "Your IP")),
-        TextField(
-          readOnly: true,
-          controller: _lastResultController,
-          maxLines: null,
-          decoration: const InputDecoration(
-              border: OutlineInputBorder(), labelText: "Last Result"),
-        ),
-        Row(
-          children: [
-            ElevatedButton(
-                onPressed: _buttonsDisabled
-                    ? null
-                    : () => fetchAndUpdateIp(force: true),
-                child: const Text("Update now")),
-            ElevatedButton(
-                onPressed: _buttonsDisabled
-                    ? null
-                    : () {
-                        setState(() {
-                          _running = !_running;
-                        });
-                      },
-                child: Text(_running ? "Stop" : "Start"))
-          ],
-        )
-      ],
-    ));
+                border: OutlineInputBorder(), labelText: "Last Result(s)"),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            readOnly: true,
+            controller: _lastUpdatedController,
+            decoration: const InputDecoration(
+                border: OutlineInputBorder(), labelText: "Last Update"),
+          ),
+          const SizedBox(height: 20),
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                    onPressed: _buttonsDisabled
+                        ? null
+                        : () => fetchAndUpdateIp(force: true),
+                    child: const Text("Update now")),
+                const SizedBox(width: 30),
+                ElevatedButton(
+                    onPressed: _buttonsDisabled
+                        ? null
+                        : () {
+                            setState(() {
+                              _running = !_running;
+                            });
+                          },
+                    child: Text(_running ? "Stop" : "Start"))
+              ],
+            ),
+          )
+        ],
+      ),
+    );
   }
+}
+
+extension SerializableUpdateResult on UpdateResult {
+  Map<String, dynamic> toJson() => {
+    'success': success,
+    'statusCode': statusCode,
+    'reason': reasonPhrase,
+    'address': addressText,
+    'contents': contents,
+    'timestamp': timestamp
+  };
 }

@@ -9,7 +9,7 @@ class Home extends StatelessWidget {
   Widget build(BuildContext context) {
     return DefaultTabController(
       initialIndex: 0,
-      length: 3,
+      length: 2,
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(kToolbarHeight),
@@ -19,17 +19,16 @@ class Home extends StatelessWidget {
               tabs: <Widget>[
                 Tab(
                   icon: Icon(Icons.cloud_outlined),
+                  text: "Update DNS",
                 ),
                 Tab(
-                  icon: Icon(Icons.beach_access_sharp),
-                ),
-                Tab(
-                  icon: Icon(Icons.brightness_5_sharp),
+                  icon: Icon(Icons.login),
+                  text: "Login",
                 ),
               ],
             ),
             decoration: BoxDecoration(
-              color: HexColor.fromHex("#005096"),
+              color: Theme.of(context).primaryColor,
               boxShadow: [
                 BoxShadow(
                   color: Colors.grey.withOpacity(0.5),
@@ -41,30 +40,27 @@ class Home extends StatelessWidget {
             ),
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: <Widget>[
             Center(
-              child: Update(),
+              child: Container(
+                constraints: const BoxConstraints(
+                  maxWidth: 400
+                ),
+                child: const Update()
+              ),
             ),
             Center(
-              child: Text("It's rainy here"),
-            ),
-            Center(
-              child: Login(),
+              child: Container(
+                constraints: const BoxConstraints(
+                  maxWidth: 400
+                ),
+                child: const Login(),
+              ),
             )
           ],
         ),
       ),
     );
-  }
-}
-
-extension HexColor on Color {
-  /// String is in the format "aabbcc" or "ffaabbcc" with an optional leading "#".
-  static Color fromHex(String hexString) {
-    final buffer = StringBuffer();
-    if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
-    buffer.write(hexString.replaceFirst('#', ''));
-    return Color(int.parse(buffer.toString(), radix: 16));
   }
 }

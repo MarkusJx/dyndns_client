@@ -5,6 +5,19 @@ void main() {
   runApp(const MyApp());
 }
 
+Map<int, Color> color = {
+  50: const Color.fromRGBO(0, 80, 150, .1),
+  100: const Color.fromRGBO(0, 80, 150, .1),
+  200: const Color.fromRGBO(0, 80, 150, .3),
+  300: const Color.fromRGBO(0, 80, 150, .4),
+  400: const Color.fromRGBO(0, 80, 150, .5),
+  500: const Color.fromRGBO(0, 80, 150, .6),
+  600: const Color.fromRGBO(0, 80, 150, .7),
+  700: const Color.fromRGBO(0, 80, 150, .8),
+  800: const Color.fromRGBO(0, 80, 150, .9),
+  900: const Color.fromRGBO(0, 80, 150, 1),
+};
+
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
@@ -12,20 +25,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'DynDNS Client',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
+        primarySwatch: MaterialColor(0xFF005096, color),
       ),
-      //home: const MyHomePage(title: 'Flutter Demo Home Page'),
       home: const Home()
     );
   }

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:logger/logger.dart';
+
+final logger = Logger();
 
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);
@@ -59,50 +62,62 @@ class _LoginState extends State<Login> {
   }
 
   void _loadData() async {
+    logger.d("Loading credentials");
     _password = await _storage.read(key: "password");
     _username = await _storage.read(key: "username");
     _dnsHost = await _storage.read(key: "dnsHost");
     _domains = await _storage.read(key: "domains");
+    logger.d("Credentials loaded");
     _saving = false;
   }
 
   void _saveData() async {
     _saving = true;
+    logger.d("Saving credentials");
     await _storage.write(key: "username", value: _usernameFieldController.text);
     await _storage.write(key: "password", value: _passwordFieldController.text);
     await _storage.write(key: "dnsHost", value: _dnsHostFieldController.text);
     await _storage.write(key: "domains", value: _domainFieldController.text);
+    logger.d("Credentials saved successfully");
     _saving = false;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Column(
-      children: [
-        TextField(
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          TextField(
+              readOnly: __saving,
+              controller: _dnsHostFieldController,
+              decoration: const InputDecoration(
+                  border: OutlineInputBorder(), labelText: "DNS Server URL")),
+          const SizedBox(height: 15),
+          TextField(
             readOnly: __saving,
-            controller: _dnsHostFieldController,
+            controller: _usernameFieldController,
             decoration: const InputDecoration(
-                border: OutlineInputBorder(), labelText: "DNS Server URL")),
-        TextField(
-          readOnly: __saving,
-          controller: _usernameFieldController,
-          decoration: const InputDecoration(
-              border: OutlineInputBorder(), labelText: "Username"),
-        ),
-        PasswordField(controller: _passwordFieldController, readOnly: __saving),
-        TextField(
-          readOnly: __saving,
-          controller: _domainFieldController,
-          maxLines: null,
-          decoration: const InputDecoration(
-              border: OutlineInputBorder(), labelText: "Domains"),
-        ),
-        ElevatedButton(
-            onPressed: __saving ? null : _saveData, child: const Text("Save"))
-      ],
-    ));
+                border: OutlineInputBorder(), labelText: "Username"),
+          ),
+          const SizedBox(height: 15),
+          PasswordField(
+              controller: _passwordFieldController, readOnly: __saving),
+          const SizedBox(height: 15),
+          TextField(
+            readOnly: __saving,
+            controller: _domainFieldController,
+            maxLines: null,
+            decoration: const InputDecoration(
+                border: OutlineInputBorder(), labelText: "Domains"),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+              onPressed: __saving ? null : _saveData, child: const Text("Save"))
+        ],
+      ),
+    );
   }
 }
 
@@ -120,11 +135,6 @@ class PasswordField extends StatefulWidget {
 
 class _PasswordFieldState extends State<PasswordField> {
   bool _obscure = true;
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
