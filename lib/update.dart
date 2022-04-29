@@ -138,8 +138,10 @@ class _UpdateState extends State<Update> {
             await updateIp(address);
           } catch (_) {
             _lastResult = "Error";
-            print(_);
           }
+        } else {
+          _lastResult = "Error";
+          _ip = "Unable to obtain IP Address";
         }
       } else {
         _lastResult = "No update";

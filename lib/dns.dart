@@ -26,11 +26,18 @@ class GenericDyndns2Updater extends Dyndns2Updater {
     sb.write(hostname);
     sb.write('&myip=');
     sb.write(address.address);
+    //sb.write("1.2.3.323");
     sb.write("&wildcard=NOCHG&mx=NOCHG&backmx=NOCHG&offline=NOCHG");
     Uri uri = Uri.parse(sb.toString());
     HttpClient client = httpClient;
     client.addCredentials(
         uri, 'realm', HttpClientBasicCredentials(username, password));
     return client.getUrl(uri).then(processRequest).then(processResponse);
+  }
+
+  @override
+  Future<HttpClientResponse> processRequest(HttpClientRequest request) {
+    request.headers.set(HttpHeaders.userAgentHeader, "DynDNS2 Client/1.0.0 hi@markusjx.com");
+    return request.close();
   }
 }
