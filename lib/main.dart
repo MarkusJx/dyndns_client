@@ -11,7 +11,7 @@ void main() {
 
   doWhenWindowReady(() {
     final win = appWindow;
-    const initialSize = Size(600, 450);
+    const initialSize = Size(550, 550);
     win.minSize = initialSize;
     win.size = initialSize;
     win.alignment = Alignment.center;
@@ -44,36 +44,45 @@ class _MyAppState extends State<MyApp> {
   final SystemTray _systemTray = SystemTray();
   final AppWindow _appWindow = AppWindow();
 
+  List<MenuItem>? _trayMenu;
+  MenuItem? _invisibleItem;
+  MenuItem? _visibleItem;
+  bool _visible = true;
+
   @override
   void initState() {
     super.initState();
     _initSystemTray();
   }
 
+  void _hideWindow() {
+    _appWindow.hide();
+    _trayMenu![1] = _invisibleItem!;
+    _visible = false;
+    _systemTray.setContextMenu(_trayMenu!);
+  }
+
+  void _showWindow() {
+    _appWindow.show();
+    _trayMenu![1] = _visibleItem!;
+    _visible = true;
+    _systemTray.setContextMenu(_trayMenu!);
+  }
+
+  void _setLastUpdated(String date) {
+    _trayMenu![0] = MenuItem(label: 'Last updated: $date', enabled: false);
+  }
+
   Future<void> _initSystemTray() async {
-    String path = Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png';
+    String path =
+        Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png';
 
-    var menu = <MenuItem>[];
-    MenuItem? invisibleItem;
+    _visibleItem = MenuItem(label: 'Hide', onClicked: _hideWindow);
+    _invisibleItem = MenuItem(label: 'Show', onClicked: _showWindow);
 
-    bool visible = true;
-
-    final visibleItem = MenuItem(label: 'Hide', onClicked: () {
-      _appWindow.hide();
-      menu[0] = invisibleItem!;
-      visible = false;
-      _systemTray.setContextMenu(menu);
-    });
-
-    invisibleItem = MenuItem(label: 'Show', onClicked: () {
-        _appWindow.show();
-        menu[0] = visibleItem;
-        visible = true;
-        _systemTray.setContextMenu(menu);
-    });
-
-    menu = [
-      visibleItem,
+    _trayMenu = [
+      MenuItem(label: 'Last updated: Never', enabled: false),
+      _visibleItem!,
       MenuItem(label: 'Exit', onClicked: _appWindow.close),
     ];
 
@@ -83,21 +92,15 @@ class _MyAppState extends State<MyApp> {
       iconPath: path,
     );
 
-    await _systemTray.setContextMenu(menu);
+    await _systemTray.setContextMenu(_trayMenu!);
 
     // handle system tray event
     _systemTray.registerSystemTrayEventHandler((eventName) {
       if (eventName == "leftMouseDown") {
-        if (visible) {
-          _appWindow.hide();
-          menu[0] = invisibleItem!;
-          visible = false;
-          _systemTray.setContextMenu(menu);
+        if (_visible) {
+          _hideWindow();
         } else {
-          _appWindow.show();
-          menu[0] = visibleItem;
-          visible = true;
-          _systemTray.setContextMenu(menu);
+          _showWindow();
         }
       } else if (eventName == "rightMouseDown") {
         _systemTray.popUpContextMenu();
@@ -113,7 +116,7 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(
         primarySwatch: MaterialColor(0xFF005096, color),
       ),
-      home: const Home()
+      home: Home(setLastUpdated: _setLastUpdated),
     );
   }
 }

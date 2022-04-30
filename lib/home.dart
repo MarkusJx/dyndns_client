@@ -3,7 +3,9 @@ import 'package:dydns2_client/update.dart';
 import 'package:flutter/material.dart';
 
 class Home extends StatelessWidget {
-  const Home({Key? key}) : super(key: key);
+  final void Function(String date) setLastUpdated;
+
+  const Home({Key? key, required this.setLastUpdated}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +49,7 @@ class Home extends StatelessWidget {
                 constraints: const BoxConstraints(
                   maxWidth: 400
                 ),
-                child: const Update()
+                child: Update(setLastUpdated: setLastUpdated)
               ),
             ),
             Center(

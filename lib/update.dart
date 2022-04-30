@@ -15,7 +15,9 @@ import 'dns.dart';
 final logger = Logger();
 
 class Update extends StatefulWidget {
-  const Update({Key? key}) : super(key: key);
+  final void Function(String time) setLastUpdated;
+
+  const Update({Key? key, required this.setLastUpdated}) : super(key: key);
 
   @override
   State<Update> createState() => _UpdateState();
@@ -25,6 +27,7 @@ class _UpdateState extends State<Update> {
   bool _running = false;
   bool _buttonsDisabled = false;
   bool _updateIntervalFieldReadOnly = false;
+  String _selectedAddressWebsite = "Random";
   final _storage = const FlutterSecureStorage();
 
   final _ipTextController = TextEditingController(text: "Unknown");
@@ -33,11 +36,52 @@ class _UpdateState extends State<Update> {
   final _updateIntervalController = TextEditingController(text: "3600");
 
   DateFormat? _dateFormat;
+  FocusNode? _updateIntervalFocusNode;
 
   @override
   void initState() {
     super.initState();
     initializeDateFormatting();
+    _updateIntervalFocusNode = FocusNode();
+
+    _updateIntervalFocusNode!.addListener(() async {
+      if (!_updateIntervalFocusNode!.hasFocus) {
+        try {
+          logger.d("Saving update interval");
+          _storage.write(
+              key: 'updateInterval', value: _updateIntervalController.text);
+          logger.d("Update interval saved");
+        } catch (e) {
+          logger.e("Could not save the update interval", e);
+        }
+      }
+    });
+
+    _storage.read(key: 'updateInterval').then((value) {
+      if (value != null) {
+        logger.d("Loaded the update interval");
+        setState(() => _updateIntervalController.text = value);
+      } else {
+        logger.d("The update interval was unset");
+      }
+    }, onError: (e) {
+      logger.e("Could not read the update interval", e);
+    });
+
+    _storage.read(key: 'addressWebsite').then((value) {
+      if (value != null && value != "Random") {
+        logger.d("Loaded the address website");
+        setState(() => _selectedAddressWebsite = value);
+      }
+    }, onError: (e) {
+      logger.e("Could not read the address website", e);
+    });
+  }
+
+  @override
+  void dispose() {
+    _updateIntervalFocusNode?.dispose();
+    super.dispose();
   }
 
   set buttonsDisabled(bool disabled) {
@@ -59,14 +103,18 @@ class _UpdateState extends State<Update> {
   }
 
   set _lastUpdated(DateTime date) {
+    setState(() {
+      _lastUpdatedController.text = _dateToString(date);
+    });
+  }
+
+  String _dateToString(DateTime date) {
     if (_dateFormat == null) {
       final languageCode = Localizations.localeOf(context).languageCode;
       _dateFormat = DateFormat('dd.MM.yyyy HH:mm:ss', languageCode);
     }
 
-    setState(() {
-      _lastUpdatedController.text = _dateFormat!.format(date);
-    });
+    return _dateFormat!.format(date);
   }
 
   void _setRunning(bool r) {
@@ -118,6 +166,7 @@ class _UpdateState extends State<Update> {
             dnsHost: dns);
         final res = await updater.update(address);
         _lastUpdated = res.timestamp;
+        widget.setLastUpdated(_dateToString(res.timestamp));
         results[i] = domains.elementAt(i) + ": " + updateResultToString(res);
         logger.d(res.toJson());
       }
@@ -130,7 +179,7 @@ class _UpdateState extends State<Update> {
     }
   }
 
-  Future<void> fetchAndUpdateIp({bool force = false}) async {
+  Future<void> _fetchAndUpdateIp({bool force = false}) async {
     buttonsDisabled = true;
 
     final String lastIp = _ipTextController.text;
@@ -172,6 +221,7 @@ class _UpdateState extends State<Update> {
     try {
       logger.d("Start watching");
       buttonsDisabled = true;
+      _setRunning(true);
       final int? secs = int.tryParse(_updateIntervalController.text);
       if (secs == null) {
         logger.e("Could not parse the update interval");
@@ -179,6 +229,7 @@ class _UpdateState extends State<Update> {
         logger.d('Updating every $secs seconds');
       }
 
+      await _fetchAndUpdateIp();
       final stream = await AddressMonitor.startWatching(
           Duration(seconds: secs ?? 3600), _stopWatching);
 
@@ -194,16 +245,17 @@ class _UpdateState extends State<Update> {
           }
         });
 
-        _setRunning(true);
         buttonsDisabled = false;
       } else {
         await AddressMonitor.stopWatching();
         logger.e("The address event stream was null");
         buttonsDisabled = false;
+        _setRunning(false);
       }
     } catch (e) {
       logger.e("Could not start watching", e);
       buttonsDisabled = false;
+      _setRunning(false);
     }
   }
 
@@ -217,6 +269,42 @@ class _UpdateState extends State<Update> {
     } catch (e) {
       logger.e("Could not stop watching", e);
       buttonsDisabled = false;
+    }
+  }
+
+  List<DropdownMenuItem<String>>? _getAddressWebsites() {
+    try {
+      final websites = PublicAddressWebsite.websites
+          .map((e) => DropdownMenuItem(
+              child: Text(e.uri.host), value: e.uri.toString()))
+          .toList();
+      websites.insert(
+          0, const DropdownMenuItem(child: Text("Random"), value: "Random"));
+
+      return websites;
+    } catch (e) {
+      logger.e("Could not get the address websites", e);
+      return null;
+    }
+  }
+
+  Future<void> _setAddressWebsite(String value) async {
+    try {
+      logger.d('Updating the address website to $value');
+      if (value == "Random") {
+        await AddressMonitor.setAddress(null);
+      } else {
+        final site = PublicAddressWebsite.websites
+            .singleWhere((e) => e.uri.toString() == value);
+        await AddressMonitor.setAddress(() => site);
+      }
+
+      _storage.write(key: 'addressWebsite', value: value);
+      logger.d("Saved the address website");
+    } catch (e) {
+      logger.e("Could not set the address website", e);
+      AddressMonitor.setAddress(null).catchError((_) => null);
+      setState(() => _selectedAddressWebsite = "Random");
     }
   }
 
@@ -252,14 +340,25 @@ class _UpdateState extends State<Update> {
             controller: _updateIntervalController,
             keyboardType: TextInputType.number,
             readOnly: _updateIntervalFieldReadOnly,
+            focusNode: _updateIntervalFocusNode,
             inputFormatters: <TextInputFormatter>[
               FilteringTextInputFormatter.digitsOnly
             ],
-            // Only numbers can be entered
             decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: "Update Interval (seconds)"),
           ),
+          const SizedBox(height: 20),
+          DropdownButton<String>(
+              items: _getAddressWebsites(),
+              elevation: 16,
+              value: _selectedAddressWebsite,
+              onChanged: _updateIntervalFieldReadOnly
+                  ? null
+                  : (String? value) {
+                      _setAddressWebsite(value!);
+                      setState(() => _selectedAddressWebsite = value);
+                    }),
           const SizedBox(height: 20),
           Center(
             child: Row(
@@ -269,7 +368,11 @@ class _UpdateState extends State<Update> {
                 ElevatedButton(
                     onPressed: _buttonsDisabled
                         ? null
-                        : () => fetchAndUpdateIp(force: true),
+                        : () async {
+                            setState(() => _updateIntervalFieldReadOnly = true);
+                            await _fetchAndUpdateIp(force: true);
+                            setState(() => _updateIntervalFieldReadOnly = false);
+                          },
                     child: const Text("Update now")),
                 const SizedBox(width: 30),
                 ElevatedButton(
