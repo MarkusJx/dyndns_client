@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:ddns_client/ddns_updater.dart';
 import 'package:ddns_client/public_address.dart';
+import 'package:dydns2_client/address_monitor.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
@@ -22,12 +24,13 @@ class Update extends StatefulWidget {
 class _UpdateState extends State<Update> {
   bool _running = false;
   bool _buttonsDisabled = false;
+  bool _updateIntervalFieldReadOnly = false;
   final _storage = const FlutterSecureStorage();
 
   final _ipTextController = TextEditingController(text: "Unknown");
   final _lastResultController = TextEditingController(text: "None");
   final _lastUpdatedController = TextEditingController(text: "Never");
-  final PublicAddressMonitor monitor = PublicAddressMonitor();
+  final _updateIntervalController = TextEditingController(text: "3600");
 
   DateFormat? _dateFormat;
 
@@ -66,6 +69,13 @@ class _UpdateState extends State<Update> {
     });
   }
 
+  void _setRunning(bool r) {
+    setState(() {
+      _updateIntervalFieldReadOnly = r;
+      _running = r;
+    });
+  }
+
   String updateResultToString(UpdateResult res) {
     if (res.contents != null) {
       return res.contents!;
@@ -74,7 +84,7 @@ class _UpdateState extends State<Update> {
     }
   }
 
-  Future<void> updateIp(InternetAddress address) async {
+  Future<void> _updateIp(InternetAddress address) async {
     _ip = address.address;
     final user = await _storage.read(key: "username");
     final pass = await _storage.read(key: "password");
@@ -120,7 +130,7 @@ class _UpdateState extends State<Update> {
     }
   }
 
-  Future fetchAndUpdateIp({bool force = false}) async {
+  Future<void> fetchAndUpdateIp({bool force = false}) async {
     buttonsDisabled = true;
 
     final String lastIp = _ipTextController.text;
@@ -130,12 +140,12 @@ class _UpdateState extends State<Update> {
     logger.d("Updating the address");
 
     try {
-      if (force || await monitor.checkAddress()) {
-        if (force) await monitor.checkAddress();
-        InternetAddress? address = monitor.address;
+      if (force || await AddressMonitor.checkAddress()) {
+        if (force) await AddressMonitor.checkAddress();
+        InternetAddress? address = await AddressMonitor.address;
         if (address != null) {
           try {
-            await updateIp(address);
+            await _updateIp(address);
           } catch (e) {
             logger.e("Could not update the ip", e);
             _lastResult = "Error";
@@ -156,6 +166,58 @@ class _UpdateState extends State<Update> {
       _lastResult = "Error";
     }
     buttonsDisabled = false;
+  }
+
+  Future<void> _startWatching() async {
+    try {
+      logger.d("Start watching");
+      buttonsDisabled = true;
+      final int? secs = int.tryParse(_updateIntervalController.text);
+      if (secs == null) {
+        logger.e("Could not parse the update interval");
+      } else {
+        logger.d('Updating every $secs seconds');
+      }
+
+      final stream = await AddressMonitor.startWatching(
+          Duration(seconds: secs ?? 3600), _stopWatching);
+
+      if (stream != null) {
+        stream.listen((PublicAddressEvent event) {
+          if (event.oldAddress == null ||
+              event.oldAddress != event.newAddress) {
+            logger.d("The ip address has changed, updating the hostname(s)");
+            _updateIp(event.newAddress)
+                .catchError((e) => logger.e("Could not update the IP", e));
+          } else {
+            logger.d("The ip has not changed");
+          }
+        });
+
+        _setRunning(true);
+        buttonsDisabled = false;
+      } else {
+        await AddressMonitor.stopWatching();
+        logger.e("The address event stream was null");
+        buttonsDisabled = false;
+      }
+    } catch (e) {
+      logger.e("Could not start watching", e);
+      buttonsDisabled = false;
+    }
+  }
+
+  Future<void> _stopWatching() async {
+    try {
+      logger.d("Stop watching");
+      buttonsDisabled = true;
+      await AddressMonitor.stopWatching();
+      _setRunning(false);
+      buttonsDisabled = false;
+    } catch (e) {
+      logger.e("Could not stop watching", e);
+      buttonsDisabled = false;
+    }
   }
 
   @override
@@ -186,6 +248,19 @@ class _UpdateState extends State<Update> {
                 border: OutlineInputBorder(), labelText: "Last Update"),
           ),
           const SizedBox(height: 20),
+          TextField(
+            controller: _updateIntervalController,
+            keyboardType: TextInputType.number,
+            readOnly: _updateIntervalFieldReadOnly,
+            inputFormatters: <TextInputFormatter>[
+              FilteringTextInputFormatter.digitsOnly
+            ],
+            // Only numbers can be entered
+            decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: "Update Interval (seconds)"),
+          ),
+          const SizedBox(height: 20),
           Center(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -201,9 +276,11 @@ class _UpdateState extends State<Update> {
                     onPressed: _buttonsDisabled
                         ? null
                         : () {
-                            setState(() {
-                              _running = !_running;
-                            });
+                            if (_running) {
+                              _stopWatching();
+                            } else {
+                              _startWatching();
+                            }
                           },
                     child: Text(_running ? "Stop" : "Start"))
               ],
@@ -217,11 +294,11 @@ class _UpdateState extends State<Update> {
 
 extension SerializableUpdateResult on UpdateResult {
   Map<String, dynamic> toJson() => {
-    'success': success,
-    'statusCode': statusCode,
-    'reason': reasonPhrase,
-    'address': addressText,
-    'contents': contents,
-    'timestamp': timestamp
-  };
+        'success': success,
+        'statusCode': statusCode,
+        'reason': reasonPhrase,
+        'address': addressText,
+        'contents': contents,
+        'timestamp': timestamp
+      };
 }

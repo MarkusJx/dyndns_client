@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Dart
+name: Flutter
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Fullter
+      - name: Install Flutter
         uses: subosito/flutter-action@v2.4.0
         
       - name: Flutter pub get
