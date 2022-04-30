@@ -275,8 +275,10 @@ class _UpdateState extends State<Update> {
   List<DropdownMenuItem<String>>? _getAddressWebsites() {
     try {
       final websites = PublicAddressWebsite.websites
-          .map((e) => DropdownMenuItem(
-              child: Text(e.uri.host), value: e.uri.toString()))
+          .map(
+            (e) => DropdownMenuItem(
+                child: Text(e.uri.host), value: e.uri.toString()),
+          )
           .toList();
       websites.insert(
           0, const DropdownMenuItem(child: Text("Random"), value: "Random"));
@@ -349,46 +351,62 @@ class _UpdateState extends State<Update> {
                 labelText: "Update Interval (seconds)"),
           ),
           const SizedBox(height: 20),
-          DropdownButton<String>(
-              items: _getAddressWebsites(),
-              elevation: 16,
-              value: _selectedAddressWebsite,
-              onChanged: _updateIntervalFieldReadOnly
-                  ? null
-                  : (String? value) {
-                      _setAddressWebsite(value!);
-                      setState(() => _selectedAddressWebsite = value);
-                    }),
-          const SizedBox(height: 20),
-          Center(
+          Container(
+            padding: const EdgeInsets.all(3.0),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.black38),
+              borderRadius: const BorderRadius.all(Radius.circular(5.0)),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                ElevatedButton(
-                    onPressed: _buttonsDisabled
-                        ? null
-                        : () async {
-                            setState(() => _updateIntervalFieldReadOnly = true);
-                            await _fetchAndUpdateIp(force: true);
-                            setState(() => _updateIntervalFieldReadOnly = false);
-                          },
-                    child: const Text("Update now")),
-                const SizedBox(width: 30),
-                ElevatedButton(
-                    onPressed: _buttonsDisabled
-                        ? null
-                        : () {
-                            if (_running) {
-                              _stopWatching();
-                            } else {
-                              _startWatching();
-                            }
-                          },
-                    child: Text(_running ? "Stop" : "Start"))
+                const Text("IP check server:"),
+                const SizedBox(width: 20),
+                DropdownButton<String>(
+                  items: _getAddressWebsites(),
+                  elevation: 16,
+                  value: _selectedAddressWebsite,
+                  onChanged: _updateIntervalFieldReadOnly
+                      ? null
+                      : (String? value) {
+                          _setAddressWebsite(value!);
+                          setState(() => _selectedAddressWebsite = value);
+                        },
+                ),
               ],
             ),
-          )
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: _buttonsDisabled
+                    ? null
+                    : () async {
+                        setState(() => _updateIntervalFieldReadOnly = true);
+                        await _fetchAndUpdateIp(force: true);
+                        setState(() => _updateIntervalFieldReadOnly = false);
+                      },
+                child: const Text("Update now"),
+              ),
+              const SizedBox(width: 30),
+              ElevatedButton(
+                onPressed: _buttonsDisabled
+                    ? null
+                    : () {
+                        if (_running) {
+                          _stopWatching();
+                        } else {
+                          _startWatching();
+                        }
+                      },
+                child: Text(_running ? "Stop" : "Start"),
+              )
+            ],
+          ),
         ],
       ),
     );
