@@ -13,7 +13,10 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [windows-latest, macOs-latest]
+    runs-on: ${{matrix.os}}
 
     steps:
       - uses: actions/checkout@v3
@@ -24,11 +27,23 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
         
-      - name: Build
+      - name: Build windows
         run: flutter build windows
+        if: matrix.os == 'windows-latest'
+      - name: Build macos
+        run: flutter build macos
+        if: matrix.os == 'macOs-latest'
         
-      - name: Upload Build Artifact
+      - name: Upload Build Artifact windows
         uses: actions/upload-artifact@v3.0.0
+        if: matrix.os == 'windows-latest'
         with:
           name: dyndns_client-windows
           path: build/windows/runner/Release
+
+      - name: Upload Build Artifact macos
+        uses: actions/upload-artifact@v3.0.0
+        if: matrix.os == 'macOs-latest'
+        with:
+          name: dyndns_client-macos
+          path: build/macos/Build/Products/Release/dyndns_client
