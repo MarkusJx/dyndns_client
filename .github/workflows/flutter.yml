@@ -26,3 +26,9 @@ jobs:
         
       - name: Build
         run: flutter build windows
+        
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3.0.0
+        with:
+          name: dyndns_client-windows
+          path: build/windows/runner/Release
