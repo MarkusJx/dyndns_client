@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:ddns_client/ddns_updater.dart';
 import 'package:ddns_client/public_address.dart';
-import 'package:dydns2_client/address_monitor.dart';
+import 'package:dydns_client/address_monitor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';

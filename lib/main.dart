@@ -1,9 +1,9 @@
 import 'dart:io';
 
-import 'package:dydns2_client/home.dart';
+import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:dydns_client/home.dart';
 import 'package:flutter/material.dart';
 import 'package:system_tray/system_tray.dart';
-import 'package:bitsdojo_window/bitsdojo_window.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

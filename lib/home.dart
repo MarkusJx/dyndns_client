@@ -1,5 +1,5 @@
-import 'package:dydns2_client/login.dart';
-import 'package:dydns2_client/update.dart';
+import 'package:dydns_client/login.dart';
+import 'package:dydns_client/update.dart';
 import 'package:flutter/material.dart';
 
 class Home extends StatelessWidget {

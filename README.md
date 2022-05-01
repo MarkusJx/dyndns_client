@@ -1,16 +1,21 @@
-# dydns2_client
+# dydns_client
 
-A DynDNS2 Desktop client
+A DynDNS Desktop client written in Dart using Flutter.
 
-## Getting Started
+## Usage
 
-This project is a starting point for a Flutter application.
+* Enter your DNS Server URL, Username, Password and Domains to register under the 'Login' tab,
+  separate domains by comma, new lines or both:<br>
+  ![The login page](doc/login.png)
 
-A few resources to get you started if this is your first Flutter project:
+* Enter an update interval and select a Server to fetch your IP Address from (or select 'Random'
+  to choose a random server each time), then, press 'Update now' to update the Addresses now
+  or select 'Start' to update the Addresses in intervals:<br>
+  ![The update page](doc/update.png)
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+## Copyright
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Licensed under the MIT License
+
+<a href="https://www.flaticon.com/free-icons/dns" title="dns icons">Application icon created by SumberRejeki -
+Flaticon</a>
