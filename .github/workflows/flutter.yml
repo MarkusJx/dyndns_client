@@ -31,8 +31,11 @@ jobs:
         run: flutter build windows
         if: matrix.os == 'windows-latest'
       - name: Build macos
-        run: flutter build macos
         if: matrix.os == 'macOs-latest'
+        run: |
+          flutter config --enable-macos-desktop
+          flutter doctor
+          flutter build macos
         
       - name: Upload Build Artifact windows
         uses: actions/upload-artifact@v3.0.0
