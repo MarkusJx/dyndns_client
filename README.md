@@ -1,4 +1,4 @@
-# dydns_client
+# dyndns_client
 
 A DynDNS Desktop client written in Dart using Flutter.
 

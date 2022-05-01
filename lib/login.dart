@@ -105,7 +105,7 @@ class _LoginState extends State<Login> {
           child: Container(
             padding: const EdgeInsets.all(25.0),
             constraints:
-                BoxConstraints(maxWidth: 400, minHeight: constraints.maxHeight),
+                BoxConstraints(maxWidth: 450, minHeight: constraints.maxHeight),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,

@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = dydns2_client
+PRODUCT_NAME = dyndns_client;
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.markusjx.dydns2Client
+PRODUCT_BUNDLE_IDENTIFIER = com.example.dydns2Client
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2022 com.markusjx. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2022 com.example. All rights reserved.

@@ -1,4 +1,4 @@
-name: dydns_client
+name: dyndns_client
 description: A DynDNS Desktop client
 
 publish_to: 'none'

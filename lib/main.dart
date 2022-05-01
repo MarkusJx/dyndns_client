@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:bitsdojo_window/bitsdojo_window.dart';
-import 'package:dydns_client/home.dart';
+import 'package:dyndns_client/home.dart';
 import 'package:flutter/material.dart';
 import 'package:system_tray/system_tray.dart';
 
@@ -88,7 +88,7 @@ class _MyAppState extends State<MyApp> {
 
     // We first init the systray menu and then add the menu entries
     await _systemTray.initSystemTray(
-      title: "system tray",
+      title: "",
       iconPath: path,
     );
 

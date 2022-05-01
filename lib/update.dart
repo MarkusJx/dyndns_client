@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:ddns_client/ddns_updater.dart';
 import 'package:ddns_client/public_address.dart';
-import 'package:dydns_client/address_monitor.dart';
+import 'package:dyndns_client/address_monitor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -344,7 +344,7 @@ class _UpdateState extends State<Update> {
           child: Container(
             padding: const EdgeInsets.all(25.0),
             constraints:
-                BoxConstraints(maxWidth: 400, minHeight: constraints.maxHeight),
+                BoxConstraints(maxWidth: 450, minHeight: constraints.maxHeight),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
