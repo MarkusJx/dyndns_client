@@ -15,7 +15,8 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, macOs-latest]
+        #os: [windows-latest, macOs-latest]
+        os: [windows-latest]
     runs-on: ${{matrix.os}}
 
     steps:
