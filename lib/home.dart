@@ -44,22 +44,8 @@ class Home extends StatelessWidget {
         ),
         body: TabBarView(
           children: <Widget>[
-            Center(
-              child: Container(
-                constraints: const BoxConstraints(
-                  maxWidth: 400
-                ),
-                child: Update(setLastUpdated: setLastUpdated)
-              ),
-            ),
-            Center(
-              child: Container(
-                constraints: const BoxConstraints(
-                  maxWidth: 400
-                ),
-                child: const Login(),
-              ),
-            )
+            Update(setLastUpdated: setLastUpdated),
+            const Login(),
           ],
         ),
       ),

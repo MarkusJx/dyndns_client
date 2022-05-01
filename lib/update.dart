@@ -35,6 +35,9 @@ class _UpdateState extends State<Update> {
   final _lastUpdatedController = TextEditingController(text: "Never");
   final _updateIntervalController = TextEditingController(text: "3600");
 
+  final _settingsSavedSnackbar =
+      const SnackBar(content: Text("Settings saved"));
+
   DateFormat? _dateFormat;
   FocusNode? _updateIntervalFocusNode;
 
@@ -51,8 +54,11 @@ class _UpdateState extends State<Update> {
           _storage.write(
               key: 'updateInterval', value: _updateIntervalController.text);
           logger.d("Update interval saved");
+          ScaffoldMessenger.of(context).showSnackBar(_settingsSavedSnackbar);
         } catch (e) {
           logger.e("Could not save the update interval", e);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text("Could not save the update interval")));
         }
       }
     });
@@ -66,6 +72,8 @@ class _UpdateState extends State<Update> {
       }
     }, onError: (e) {
       logger.e("Could not read the update interval", e);
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not read the update interval")));
     });
 
     _storage.read(key: 'addressWebsite').then((value) {
@@ -75,6 +83,8 @@ class _UpdateState extends State<Update> {
       }
     }, onError: (e) {
       logger.e("Could not read the address website", e);
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not read the address website")));
     });
   }
 
@@ -198,11 +208,16 @@ class _UpdateState extends State<Update> {
           } catch (e) {
             logger.e("Could not update the ip", e);
             _lastResult = "Error";
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Could not update the ip")));
           }
         } else {
           logger.w("Unable to obtain IP Address: The address was null");
           _lastResult = "Error";
           _ip = "Unable to obtain IP Address";
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content:
+                  Text("Unable to obtain IP Address: The address was null")));
         }
       } else {
         logger.d("The address is already up-to-date");
@@ -213,6 +228,8 @@ class _UpdateState extends State<Update> {
       logger.e("Could not check the address", e);
       _ip = "Error";
       _lastResult = "Error";
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not check the IP address")));
     }
     buttonsDisabled = false;
   }
@@ -251,11 +268,15 @@ class _UpdateState extends State<Update> {
         logger.e("The address event stream was null");
         buttonsDisabled = false;
         _setRunning(false);
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Could not start watching")));
       }
     } catch (e) {
       logger.e("Could not start watching", e);
       buttonsDisabled = false;
       _setRunning(false);
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not start watching")));
     }
   }
 
@@ -269,6 +290,8 @@ class _UpdateState extends State<Update> {
     } catch (e) {
       logger.e("Could not stop watching", e);
       buttonsDisabled = false;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not stop watching")));
     }
   }
 
@@ -303,111 +326,126 @@ class _UpdateState extends State<Update> {
 
       _storage.write(key: 'addressWebsite', value: value);
       logger.d("Saved the address website");
+      ScaffoldMessenger.of(context).showSnackBar(_settingsSavedSnackbar);
     } catch (e) {
       logger.e("Could not set the address website", e);
       AddressMonitor.setAddress(null).catchError((_) => null);
       setState(() => _selectedAddressWebsite = "Random");
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not set the address website")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          TextField(
-              readOnly: true,
-              controller: _ipTextController,
-              decoration: const InputDecoration(
-                  border: OutlineInputBorder(), labelText: "Your IP")),
-          const SizedBox(height: 10),
-          TextField(
-            readOnly: true,
-            controller: _lastResultController,
-            maxLines: null,
-            decoration: const InputDecoration(
-                border: OutlineInputBorder(), labelText: "Last Result(s)"),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            readOnly: true,
-            controller: _lastUpdatedController,
-            decoration: const InputDecoration(
-                border: OutlineInputBorder(), labelText: "Last Update"),
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _updateIntervalController,
-            keyboardType: TextInputType.number,
-            readOnly: _updateIntervalFieldReadOnly,
-            focusNode: _updateIntervalFocusNode,
-            inputFormatters: <TextInputFormatter>[
-              FilteringTextInputFormatter.digitsOnly
-            ],
-            decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: "Update Interval (seconds)"),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(3.0),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.black38),
-              borderRadius: const BorderRadius.all(Radius.circular(5.0)),
-            ),
-            child: Row(
+    return LayoutBuilder(
+      builder: (_, constraints) => SingleChildScrollView(
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(25.0),
+            constraints:
+                BoxConstraints(maxWidth: 400, minHeight: constraints.maxHeight),
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text("IP check server:"),
-                const SizedBox(width: 20),
-                DropdownButton<String>(
-                  items: _getAddressWebsites(),
-                  elevation: 16,
-                  value: _selectedAddressWebsite,
-                  onChanged: _updateIntervalFieldReadOnly
-                      ? null
-                      : (String? value) {
-                          _setAddressWebsite(value!);
-                          setState(() => _selectedAddressWebsite = value);
-                        },
+              children: <Widget>[
+                TextField(
+                    readOnly: true,
+                    controller: _ipTextController,
+                    decoration: const InputDecoration(
+                        border: OutlineInputBorder(), labelText: "Your IP")),
+                const SizedBox(height: 10),
+                TextField(
+                  readOnly: true,
+                  controller: _lastResultController,
+                  maxLines: null,
+                  decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: "Last Result(s)"),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  readOnly: true,
+                  controller: _lastUpdatedController,
+                  decoration: const InputDecoration(
+                      border: OutlineInputBorder(), labelText: "Last Update"),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _updateIntervalController,
+                  keyboardType: TextInputType.number,
+                  readOnly: _updateIntervalFieldReadOnly,
+                  focusNode: _updateIntervalFocusNode,
+                  inputFormatters: <TextInputFormatter>[
+                    FilteringTextInputFormatter.digitsOnly
+                  ],
+                  decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: "Update Interval (seconds)"),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(3.0),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black38),
+                    borderRadius: const BorderRadius.all(Radius.circular(5.0)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text("IP check server:"),
+                      const SizedBox(width: 20),
+                      DropdownButton<String>(
+                        items: _getAddressWebsites(),
+                        elevation: 16,
+                        value: _selectedAddressWebsite,
+                        onChanged: _updateIntervalFieldReadOnly
+                            ? null
+                            : (String? value) {
+                                _setAddressWebsite(value!);
+                                setState(() => _selectedAddressWebsite = value);
+                              },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: _buttonsDisabled
+                          ? null
+                          : () async {
+                              setState(
+                                  () => _updateIntervalFieldReadOnly = true);
+                              await _fetchAndUpdateIp(force: true);
+                              setState(
+                                  () => _updateIntervalFieldReadOnly = false);
+                            },
+                      child: const Text("Update now"),
+                    ),
+                    const SizedBox(width: 30),
+                    ElevatedButton(
+                      onPressed: _buttonsDisabled
+                          ? null
+                          : () {
+                              if (_running) {
+                                _stopWatching();
+                              } else {
+                                _startWatching();
+                              }
+                            },
+                      child: Text(_running ? "Stop" : "Start"),
+                    )
+                  ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: _buttonsDisabled
-                    ? null
-                    : () async {
-                        setState(() => _updateIntervalFieldReadOnly = true);
-                        await _fetchAndUpdateIp(force: true);
-                        setState(() => _updateIntervalFieldReadOnly = false);
-                      },
-                child: const Text("Update now"),
-              ),
-              const SizedBox(width: 30),
-              ElevatedButton(
-                onPressed: _buttonsDisabled
-                    ? null
-                    : () {
-                        if (_running) {
-                          _stopWatching();
-                        } else {
-                          _startWatching();
-                        }
-                      },
-                child: Text(_running ? "Stop" : "Start"),
-              )
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -20,7 +20,11 @@ class _LoginState extends State<Login> {
   final _domainFieldController = TextEditingController();
 
   _LoginState() {
-    _loadData();
+    _loadData().catchError((e) {
+      logger.e("Could not load the settings", e);
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not load the settings")));
+    });
   }
 
   set _saving(bool v) {
@@ -61,7 +65,7 @@ class _LoginState extends State<Login> {
     }
   }
 
-  void _loadData() async {
+  Future<void> _loadData() async {
     logger.d("Loading credentials");
     _password = await _storage.read(key: "password");
     _username = await _storage.read(key: "username");
@@ -72,50 +76,72 @@ class _LoginState extends State<Login> {
   }
 
   void _saveData() async {
-    _saving = true;
-    logger.d("Saving credentials");
-    await _storage.write(key: "username", value: _usernameFieldController.text);
-    await _storage.write(key: "password", value: _passwordFieldController.text);
-    await _storage.write(key: "dnsHost", value: _dnsHostFieldController.text);
-    await _storage.write(key: "domains", value: _domainFieldController.text);
-    logger.d("Credentials saved successfully");
-    _saving = false;
+    try {
+      _saving = true;
+      logger.d("Saving credentials");
+      await _storage.write(
+          key: "username", value: _usernameFieldController.text);
+      await _storage.write(
+          key: "password", value: _passwordFieldController.text);
+      await _storage.write(key: "dnsHost", value: _dnsHostFieldController.text);
+      await _storage.write(key: "domains", value: _domainFieldController.text);
+      logger.d("Credentials saved successfully");
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Settings saved")));
+    } catch (e) {
+      logger.e("Could not save the credentials", e);
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Could not save the settings")));
+    } finally {
+      _saving = false;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          TextField(
-              readOnly: __saving,
-              controller: _dnsHostFieldController,
-              decoration: const InputDecoration(
-                  border: OutlineInputBorder(), labelText: "DNS Server URL")),
-          const SizedBox(height: 15),
-          TextField(
-            readOnly: __saving,
-            controller: _usernameFieldController,
-            decoration: const InputDecoration(
-                border: OutlineInputBorder(), labelText: "Username"),
+    return LayoutBuilder(
+      builder: (_, constraints) => SingleChildScrollView(
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(25.0),
+            constraints:
+                BoxConstraints(maxWidth: 400, minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                TextField(
+                    readOnly: __saving,
+                    controller: _dnsHostFieldController,
+                    decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: "DNS Server URL")),
+                const SizedBox(height: 15),
+                TextField(
+                  readOnly: __saving,
+                  controller: _usernameFieldController,
+                  decoration: const InputDecoration(
+                      border: OutlineInputBorder(), labelText: "Username"),
+                ),
+                const SizedBox(height: 15),
+                PasswordField(
+                    controller: _passwordFieldController, readOnly: __saving),
+                const SizedBox(height: 15),
+                TextField(
+                  readOnly: __saving,
+                  controller: _domainFieldController,
+                  maxLines: null,
+                  decoration: const InputDecoration(
+                      border: OutlineInputBorder(), labelText: "Domains"),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                    onPressed: __saving ? null : _saveData,
+                    child: const Text("Save"))
+              ],
+            ),
           ),
-          const SizedBox(height: 15),
-          PasswordField(
-              controller: _passwordFieldController, readOnly: __saving),
-          const SizedBox(height: 15),
-          TextField(
-            readOnly: __saving,
-            controller: _domainFieldController,
-            maxLines: null,
-            decoration: const InputDecoration(
-                border: OutlineInputBorder(), labelText: "Domains"),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-              onPressed: __saving ? null : _saveData, child: const Text("Save"))
-        ],
+        ),
       ),
     );
   }
