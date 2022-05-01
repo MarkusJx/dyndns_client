@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
-project(dydns2_client LANGUAGES CXX)
+project(dyndns_client LANGUAGES CXX)
 
-set(BINARY_NAME "dydns2_client")
+set(BINARY_NAME "dyndns_client")
 
 cmake_policy(SET CMP0063 NEW)
 
