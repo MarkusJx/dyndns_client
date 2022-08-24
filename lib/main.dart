@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:dyndns_client/home.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide MenuItem;
 import 'package:system_tray/system_tray.dart';
 
 void main() {
@@ -55,35 +55,40 @@ class _MyAppState extends State<MyApp> {
     _initSystemTray();
   }
 
-  void _hideWindow() {
+  Future<void> _hideWindow() async {
     _appWindow.hide();
     _trayMenu![1] = _invisibleItem!;
     _visible = false;
-    _systemTray.setContextMenu(_trayMenu!);
+    final Menu menu = Menu();
+    await menu.buildFrom(_trayMenu!);
+    await _systemTray.setContextMenu(menu);
   }
 
-  void _showWindow() {
+  Future<void> _showWindow() async {
     _appWindow.show();
     _trayMenu![1] = _visibleItem!;
     _visible = true;
-    _systemTray.setContextMenu(_trayMenu!);
+    final Menu menu = Menu();
+    await menu.buildFrom(_trayMenu!);
+    await _systemTray.setContextMenu(menu);
   }
 
   void _setLastUpdated(String date) {
-    _trayMenu![0] = MenuItem(label: 'Last updated: $date', enabled: false);
+    _trayMenu![0] = MenuItemLable(label: 'Last updated: $date', enabled: false);
   }
 
   Future<void> _initSystemTray() async {
     String path =
         Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png';
 
-    _visibleItem = MenuItem(label: 'Hide', onClicked: _hideWindow);
-    _invisibleItem = MenuItem(label: 'Show', onClicked: _showWindow);
+    _visibleItem = MenuItemLable(label: 'Hide', onClicked: (_) => _hideWindow);
+    _invisibleItem =
+        MenuItemLable(label: 'Show', onClicked: (_) => _showWindow);
 
     _trayMenu = [
-      MenuItem(label: 'Last updated: Never', enabled: false),
+      MenuItemLable(label: 'Last updated: Never', enabled: false),
       _visibleItem!,
-      MenuItem(label: 'Exit', onClicked: _appWindow.close),
+      MenuItemLable(label: 'Exit', onClicked: (_) => _appWindow.close),
     ];
 
     // We first init the systray menu and then add the menu entries
@@ -92,7 +97,9 @@ class _MyAppState extends State<MyApp> {
       iconPath: path,
     );
 
-    await _systemTray.setContextMenu(_trayMenu!);
+    final Menu menu = Menu();
+    await menu.buildFrom(_trayMenu!);
+    await _systemTray.setContextMenu(menu);
 
     // handle system tray event
     _systemTray.registerSystemTrayEventHandler((eventName) {
